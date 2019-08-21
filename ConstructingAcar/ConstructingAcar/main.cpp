@@ -1,4 +1,5 @@
 #include<iostream>
+#include<Windows.h>
 using namespace std;
 
 #define delimiter "\n---------------------------\n"
@@ -10,6 +11,12 @@ using namespace std;
 	   а также расходовать топливо, когда двигатель заведен.
 */
 
+/*
+	ternary operator:
+	condition ? code1 : code2;
+	condition1 ? code1 : condition2 ? code2 : condition3 ? code3 : default_code;
+*/
+
 class Tank
 {
 	unsigned int volume;
@@ -19,9 +26,15 @@ public:
 	{
 		return volume;
 	}
-	double get_fuel()const
+	double fuel_level()const
 	{
 		return this->fuel;
+	}
+	double get_fuel(double consumption_per_second)
+	{
+		fuel -= consumption_per_second;
+		if (fuel < 0)fuel = 0;
+		return fuel;
 	}
 private:
 	void set_volume(unsigned int volume)
@@ -43,7 +56,7 @@ public:
 	}
 
 	//			Constructors:
-	Tank(int volume = 40) :volume(volume >= 20 && volume <= 60 ? volume : 40), fuel(0)
+	Tank(int volume = 40) :volume(volume >= 20 && volume <= 90 ? volume : 40), fuel(0)
 	{
 		cout << "TConstructor:\t" << this << endl;
 	}
@@ -76,14 +89,18 @@ public:
 	}
 	double get_consumption()const
 	{
-		return consumption*10000;
+		return consumption;
+	}
+	double consumption_per_second() const
+	{
+		return consumption / 10000;
 	}
 	bool is_started() const
 	{
 		return this->started;
 	}
 	//			Constructors:
-	Engine(double volume, unsigned int power, double consumption)
+	Engine(double volume = 2.0, unsigned int power = 210, double consumption = 8)
 	{
 		if (volume >= 1 && volume <= 8)
 			this->volume = volume;
@@ -93,8 +110,8 @@ public:
 			this->power = power;
 		else
 			throw exception("Error: Bad engine power");
-		if (consumption >= 3 && consumption <= 20)
-			this->consumption = consumption/10000;
+		if (consumption >= 3 && consumption <= 50)
+			this->consumption = consumption;
 		else
 			throw exception("Error:Bad consumption");
 		this->started = false;
@@ -104,6 +121,8 @@ public:
 	{
 		cout << "EDestructor:\t" << this << endl;
 	}
+
+
 	//			Methods:
 	void start()
 	{
@@ -118,9 +137,95 @@ public:
 	{
 		cout << "Volume:\t" << volume << " liters;\n";
 		cout << "Power:\t" << power << " hp;\n";
-		cout << "Consumption:\t" << consumption * 10000 << " l/100km;\n";
+		cout << "Consumption:\t" << consumption << " l/100km;\n";
 		cout << (started ? "Started:" : "Stopped") << "\t" << endl;
-	} 
+	}
+
+	
+};
+
+class Car
+{
+	Tank tank;
+	Engine engine;
+	bool started;	//Заведена/остановлена
+public:
+	const Tank& get_tank() const
+	{
+		return tank;
+	}
+	const Engine& get_engine() const
+	{
+		return engine;
+	}
+	bool is_started() const
+	{
+		return started;
+	}
+
+	//			Constructors:
+	Car(const Engine& engine, const Tank& tank)
+	{
+		this->engine = engine;
+		this->tank = tank;
+		cout << "CConstroctor:\t" << this << endl;
+	}
+	~Car()
+	{
+		cout << "CDestroctor:\t" << this << endl;
+	}
+
+	void fill(double fuel)
+	{
+		tank.fill(fuel);
+	}
+
+	void start()
+	{
+		if (tank.fuel_level() > 0)
+		{
+			engine.start();
+			idle();
+		}
+		else
+		{
+			cout << "No fuel" << endl;
+		}
+	}
+
+	void stop()
+	{
+		engine.stop();
+	}
+
+	void idle()
+	{
+		//Холостой ход двигателя.
+		while (tank.fuel_level() > 0 && engine.is_started())
+		{
+			tank.get_fuel(engine.consumption_per_second());
+			//Sleep(1000);
+			if (tank.fuel_level() <= 0)engine.stop();
+			status();
+		}
+	}
+
+	void status() const
+	{
+		system("CLS");
+		cout << "Fuel:\t" << tank.fuel_level() << " liters.\n";
+		cout << "Engine " << (engine.is_started() ? "started" : "stopped") << endl;
+		//cout << "\n----------------------------------------\n";
+	}
+
+	void info()
+	{
+		cout << "Engine:\n";
+		engine.info();
+		cout << "Tank:\n";
+		tank.info();
+
+	}
 };
 
 void main()
@@ -128,13 +233,18 @@ void main()
 	setlocale(LC_ALL, "");
 	try
 	{
-		Tank tank(500);
+		/*Tank tank(500);
 		tank.info();
 		tank.fill(20);
 		tank.info();
 		cout << delimiter << endl;
 		Engine engine(3, 300, 15);
-		engine.info();
+		engine.info();*/
+
+		Car audi(Engine(2.0, 240, 40), Tank(70));
+		audi.fill(1);
+		//audi.info();
+		audi.start();
 	}
 	catch (const std::exception& e)
 	{
