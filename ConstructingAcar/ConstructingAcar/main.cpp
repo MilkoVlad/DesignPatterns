@@ -1,4 +1,5 @@
 #include<iostream>
+#include<conio.h>
 #include<Windows.h>
 using namespace std;
 
@@ -141,7 +142,7 @@ public:
 		cout << (started ? "Started:" : "Stopped") << "\t" << endl;
 	}
 
-	
+
 };
 
 class Car
@@ -149,6 +150,9 @@ class Car
 	Tank tank;
 	Engine engine;
 	bool started;	//Заведена/остановлена
+	unsigned int speed;
+	unsigned int max_speed;
+	unsigned int acceleration;
 public:
 	const Tank& get_tank() const
 	{
@@ -162,12 +166,18 @@ public:
 	{
 		return started;
 	}
-
 	//			Constructors:
-	Car(const Engine& engine, const Tank& tank)
+	Car
+	(
+		const Engine& engine, const Tank& tank,
+		unsigned int max_speed, unsigned int acceleration
+	)
 	{
 		this->engine = engine;
 		this->tank = tank;
+		this->speed = 0;
+		this->max_speed = max_speed;
+		this->acceleration = acceleration;
 		cout << "CConstroctor:\t" << this << endl;
 	}
 	~Car()
@@ -201,13 +211,34 @@ public:
 	void idle()
 	{
 		//Холостой ход двигателя.
+		char key;
 		while (tank.fuel_level() > 0 && engine.is_started())
 		{
 			tank.get_fuel(engine.consumption_per_second());
-			//Sleep(1000);
+			Sleep(1000);
 			if (tank.fuel_level() <= 0)engine.stop();
+			if (kbhit())
+			{
+				key = getch();
+				switch (key)
+				{
+				case 13:
+					engine.stop();
+					status();
+					return;
+				case 27: return;
+				case 'w': speed_up(); break;
+				}
+
+				cout << (int)key << endl;
+			}
 			status();
 		}
+	}
+
+	void speed_up()
+	{
+		if (engine.is_started())speed += acceleration;
 	}
 
 	void status() const
@@ -215,6 +246,14 @@ public:
 		system("CLS");
 		cout << "Fuel:\t" << tank.fuel_level() << " liters.\n";
 		cout << "Engine " << (engine.is_started() ? "started" : "stopped") << endl;
+		cout << "Speed:\t" << speed << " km/h." << endl;
+		if (tank.fuel_level() < 5)
+		{
+			HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+			SetConsoleTextAttribute(hConsole, 0x0F);
+			cout << "Мало топлива, заправьтесь!!!" << endl;
+			SetConsoleTextAttribute(hConsole, 0x0A);
+		}
 		//cout << "\n----------------------------------------\n";
 	}
 
@@ -224,13 +263,14 @@ public:
 		engine.info();
 		cout << "Tank:\n";
 		tank.info();
-
 	}
 };
 
 void main()
 {
 	setlocale(LC_ALL, "");
+	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+	SetConsoleTextAttribute(hConsole, 0x0A);
 	try
 	{
 		/*Tank tank(500);
@@ -241,10 +281,21 @@ void main()
 		Engine engine(3, 300, 15);
 		engine.info();*/
 
-		Car audi(Engine(2.0, 240, 40), Tank(70));
-		audi.fill(1);
+		Car audi(Engine(2.0, 240, 40), Tank(70), 250, 1);
+		audi.fill(5.01);
 		//audi.info();
-		audi.start();
+		//audi.start();
+
+		char key = 0;
+		do
+		{
+			key = getch();
+			switch (key)
+			{
+			case 13: audi.start(); break;
+			case 'w':audi.speed_up(); break;
+			}
+		} while (key != 27);
 	}
 	catch (const std::exception& e)
 	{
