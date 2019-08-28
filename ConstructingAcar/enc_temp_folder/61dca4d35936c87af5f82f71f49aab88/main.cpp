@@ -102,7 +102,7 @@ public:
 	}
 	bool is_stopped() const
 	{
-		return this->started;
+		return !this->started;
 	}
 	//			Constructors:
 	Engine(double volume = 2.0, unsigned int power = 210, double consumption = 8)
