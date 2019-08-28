@@ -102,7 +102,7 @@ public:
 	}
 	bool is_stopped() const
 	{
-		return this->started;
+		return !this->started;
 	}
 	//			Constructors:
 	Engine(double volume = 2.0, unsigned int power = 210, double consumption = 8)
@@ -157,6 +157,7 @@ class Car
 	unsigned int speed;
 	unsigned int max_speed;
 	unsigned int acceleration;
+	double current_consumption;	//текущий расход топлива за 1 секунду
 public:
 	const Tank& get_tank() const
 	{
@@ -182,6 +183,7 @@ public:
 		this->speed = 0;
 		this->max_speed = max_speed;
 		this->acceleration = acceleration;
+		this->current_consumption = engine.consumption_per_second();
 		cout << "CConstroctor:\t" << this << endl;
 	}
 	~Car()
@@ -219,7 +221,7 @@ public:
 		if (!engine.is_started()) return;
 		while (tank.fuel_level() > 0 || speed > 0/* && engine.is_started()*/)
 		{
-			if (engine.is_started())tank.get_fuel(engine.consumption_per_second());
+			if (engine.is_started())tank.get_fuel(current_consumption);
 			Sleep(1000);
 			if (tank.fuel_level() <= 0)engine.stop();
 			if (kbhit())
@@ -229,9 +231,15 @@ public:
 				{
 				case 13:
 					if (engine.is_started())
+					{
 						engine.stop();
+						break;
+					}
 					if (engine.is_stopped())
+					{
 						engine.start();
+						break;
+					}
 					//status();
 					//return;
 					break;
@@ -244,18 +252,30 @@ public:
 			}
 			status();
 			if (speed > 0)speed--;
+			set_current_consumption();
 		}
 	}
 
 	void speed_up()
 	{
 		if (engine.is_started() && speed < max_speed)speed += acceleration;
+		if (speed > max_speed)speed = max_speed;
+
 	}
 
 	void breaking(int deceleration)
 	{
 		if (speed > 0 && speed <= max_speed)speed -= deceleration;
 		if (speed< 0 || speed > max_speed)speed = 0;
+	}
+
+	void set_current_consumption()
+	{
+		if (speed > 1 && speed <= 60)current_consumption = 0.005;
+		if (speed > 60 && speed <= 100)current_consumption = 0.045;
+		if (speed > 100 && speed <= 140)current_consumption = 0.05;
+		if (speed > 140 && speed <= 200)current_consumption = 0.055;
+		if (speed > 200 && speed <= max_speed)current_consumption = 0.006;
 	}
 
 	void status() const
@@ -299,7 +319,7 @@ void main()
 		engine.info();*/
 
 		Car audi(Engine(2.0, 240, 40), Tank(70), 250, 20);
-		audi.fill(5.01);
+		audi.fill(1.01);
 		//audi.info();
 		//audi.start();
 
